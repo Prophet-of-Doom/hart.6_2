@@ -1,0 +1,6 @@
+This is a resource allocation simulator using the deadlock avoidance algorithm: bankers algorithm. It prints exclusively to the log file. 
+
+When verbose is set to 1 (located at first line of main in oss.c), it prints every time master gives someone a requested resource, a resource is released, or a process is blocked or unblocked,
+Additionally, it prints a table showing the resources allcoated to each process with some additional information.
+
+It rarely ever prints this out. For more visible printing not to the logfile to get a better idea of how it operates, switch to the branch "properprinting".

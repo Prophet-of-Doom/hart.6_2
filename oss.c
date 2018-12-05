@@ -90,7 +90,7 @@ int main(int argc, char *argv[]){
 	attachToSharedMemory(&seconds, &nanoseconds, &semPtr, &pcbPtr, timeid, semid, pcbid);
 	//create memkeys, memory, attach
 	//msgrcv(msgid, &message, sizeof(message), pcbPtr[i].pid, 0);
-	int forked = 0, forkTimeSet = 0, i = 0, tempPid = 0;
+	int forked = 0, forkTimeSet = 0, i = 0, tempPid = 0, status;
 	float childRequestAddress = 0;
 	char childMsg[20];
 	//sem_wait(semPtr);
@@ -113,12 +113,18 @@ int main(int argc, char *argv[]){
 			if(checkArrPosition(&position) == 1){			
 				printf("BEGIN==================\n");
 				forked++;
+				if(forked == 26){
+					printf("26\n");
+				}
+				printf("%d %d", sizeof(PCB), sizeof(unsigned int));
+				//if(fork() == 0) execlp("ps", "ps", NULL);
 				forkTimeSet = 0;
 				printf("forking at %d : %d \n", *seconds, *nanoseconds);
 				createArgs(sharedTimeMem, sharedSemMem, sharedPositionMem, sharedPCBMem, timeid, semid, pcbid, position);
 				pid_t childPid = forkChild(sharedTimeMem, sharedSemMem, sharedPositionMem, sharedPCBMem);
 				pcbArray[position] = malloc(sizeof(struct PCB));
 				(*pcbArrPtr)[position]->pid = childPid;
+				//sleep(1);
 				printf("Child pid is %d\n", childPid);
 				for(i = 0 ; i < 32; i++){
 					(*pcbArrPtr)[position]->pageTable[i] = -1;
@@ -134,15 +140,16 @@ int main(int argc, char *argv[]){
 		if(processCount < 18){
 			printf("PROCESS COUNT IS LESS THAN 18 AT %d\n", processCount);
 		}
+		
 		for(i = 0; i < processCount; i++){
 			
 			if(setArr[i] == 1){
 				//printf("position %d pid %d ", i, (*pcbArrPtr)[i]->pid);
 				tempPid =  (*pcbArrPtr)[i]->pid;
 				//printf("TEST 1 process count %d\n", processCount);
-				//printf("OSS checking for messages of type %ld\n", (*pcbArrPtr)[i]->pid);
+				//printf("OSS checking for messages position %d of type %ld\n", i, (*pcbArrPtr)[i]->pid);
 				//sleep(1);
-				if(msgrcv(msgid, &message, sizeof(message)-sizeof(long), tempPid, IPC_NOWAIT) > 0){
+				if((msgrcv(msgid, &message, sizeof(message)-sizeof(long), tempPid, IPC_NOWAIT|MSG_NOERROR)) > 0){
 					printf("OSS received message %d from position %d\n", atoi(message.mesg_text), position);
 					if(atoi(message.mesg_text) != 99999){ //it received  aread or write
 						printf("TEST 2 process count %d\n", processCount);
@@ -160,35 +167,25 @@ int main(int argc, char *argv[]){
 							printf("Frame table [0][0] is %d\n", (int)childRequestAddress);
 						}
 					} else if(atoi(message.mesg_text) == 99999){ //it received a death signal
-						setArr[i] = 0; //basically if it received a message then it wants to die
+						setArr[i] = 0; //basically if it received a message then it wants to die						
 						message.mesg_type = ((*pcbArrPtr)[i]->pid+118);
 						//sleep(5);
 						printf("OSS sent death message of type %d\n", (*pcbArrPtr)[i]->pid+118);
 						sprintf(message.mesg_text,"1");
 						msgsnd(msgid, &message, sizeof(message)-sizeof(long), 0);
-						(*pcbArrPtr)[i]->isSet = 0;
-						(*pcbArrPtr)[i]->pid = 0;
+						//(*pcbArrPtr)[i]->isSet = 0;
+						//(*pcbArrPtr)[i]->pid = 0;
+						waitpid(((*pcbArrPtr)[i]->pid), &status, 0);
+						free(pcbArray[i]);
 					}
+				} else {
+					//printf("Message size %d\n",( sizeof(message) - sizeof(long)));
+					//printf("ERROR %d %s\n",errno,  strerror(errno));
+					
+					//exit(1);
 				}
 			}
 		}
-		/*for( i = 0; i < processCount; i++){
-			if(setArr[i] == 1){
-				//printf("EWFASDFASGFEWASGFSDFASRGASD\n");
-				//printf("OSS checking for messages from %d on %d\n", i, (*pcbArrPtr)[i]->pid + 18);
-				if(msgrcv(msgid, &message, sizeof(message)-sizeof(long), ((*pcbArrPtr)[i]->pid + 18), IPC_NOWAIT) > 0){
-					setArr[i] = 0; //basically if it received a message then it wants to die
-					message.mesg_type = ((*pcbArrPtr)[i]->pid+118);
-					sleep(5);
-					printf("OSS sent death message of type %d\n", (*pcbArrPtr)[i]->pid+118);
-					sprintf(message.mesg_text,"1");
-					msgsnd(msgid, &message, sizeof(message)-sizeof(long), 0);
-					(*pcbArrPtr)[i]->isSet = 0;
-					(*pcbArrPtr)[i]->pid = 0;
-					
-				}
-			}
-		}*/
 		
 	}while((*seconds < MAXSECS+10000) && alrm == 0 && forked < 100);
 	printf("Main has left the building it forked %d process count was %d\n ", forked, processCount);

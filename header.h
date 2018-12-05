@@ -86,7 +86,7 @@ pid_t forkChild(char *sharedTimeMem, char *sharedSemMem, char*sharedPositionMem,
 	}
 	if(pid < 0){
 		printf("FORK Error %s\n", strerror(errno));
-		exit(0);
+		//exit(0);
 	}
 	return pid;
 	//printf("position in forkchild: %d\n", *arrayPosition);

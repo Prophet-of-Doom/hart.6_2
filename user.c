@@ -95,7 +95,7 @@ int main(int argc, char *argv[]) {
 			}
 		//}
 	}
-	
+	printf("USER OUT OF SHIIIIIIIIIIIIIIIIIIIIIIIIIIIIT\n");
 	//message.mesg_type = (pid + 18);
 	//sprintf(message.mesg_text,"1");
 	//msgsnd(msgid, &message, sizeof(message)-sizeof(long), 0);
@@ -107,13 +107,16 @@ int main(int argc, char *argv[]) {
 		
 	
 	shmdt(seconds);     	
+	//shmdt(nanoseconds);
 	shmdt(semPtr);
 	shmdt(pcbPtr);
 	
-	msgctl(msgid, IPC_RMID, NULL);
+	//msgctl(msgid, IPC_RMID, NULL);
 	shmctl(msgid, IPC_RMID, NULL);
-	shmctl(timeid, IPC_RMID, NULL);
-	shmctl(semid, IPC_RMID, NULL);
-	shmctl(pcbid, IPC_RMID, NULL);
-	return 0;
+	//shmctl(timeid, IPC_RMID, NULL);
+	//shmctl(semid, IPC_RMID, NULL);
+	//shmctl(pcbid, IPC_RMID, NULL);
+	//shmctl(position, IPC_RMID, NULL);
+	exit(0);
 }
+

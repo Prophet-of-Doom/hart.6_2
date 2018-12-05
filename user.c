@@ -73,7 +73,7 @@ int main(int argc, char *argv[]) {
 	//printf("USER: AFTER msgsnd %d\n", position);
 	//printf("USER: position %d pid %d\n", position, pid);
 	//printf("\nUSER: seconds are: %u nano are: %u position %d\n", *seconds, *nanoseconds, position);
-	message.mesg_type = (int)pid;
+	message.mesg_type = 12345;//(int)pid;
 	setRandomEventTime(seconds, nanoseconds, &eventTimeSeconds, &eventTimeNanoseconds);
 	while(complete == 0){
 		//if((*seconds == eventTimeSeconds && *nanoseconds >= eventTimeNanoseconds) || *seconds > eventTimeSeconds){
@@ -81,10 +81,10 @@ int main(int argc, char *argv[]) {
 			request = rand()%32001;
 			if(event >= 0 && event < 10){
 				//death
-				message.mesg_type = (pid + 18);
+				message.mesg_type = (int)pid;
 				sprintf(message.mesg_text,"%d", 99999);
 				msgsnd(msgid, &message, sizeof(message)-sizeof(long), 0);
-				printf("USER SENT MESSAGE and is waiting for message at %d\n", pid + 118);
+				printf("USER %d SENT MESSAGE and is waiting for message at %d\n",position, pid + 118);
 				msgrcv(msgid, &message, sizeof(message)-sizeof(long), (pid+118), 0);
 				printf("USER CAN DIE\n");
 				complete = 1;

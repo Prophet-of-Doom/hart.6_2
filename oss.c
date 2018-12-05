@@ -131,16 +131,20 @@ int main(int argc, char *argv[]){
 				//sleep(1);
 			}
 		}
-		
+		if(processCount < 18){
+			printf("PROCESS COUNT IS LESS THAN 18 AT %d\n", processCount);
+		}
 		for(i = 0; i < processCount; i++){
+			
 			if(setArr[i] == 1){
+				//printf("position %d pid %d ", i, (*pcbArrPtr)[i]->pid);
 				tempPid =  (*pcbArrPtr)[i]->pid;
 				//printf("TEST 1 process count %d\n", processCount);
 				//printf("OSS checking for messages of type %ld\n", (*pcbArrPtr)[i]->pid);
-				
+				//sleep(1);
 				if(msgrcv(msgid, &message, sizeof(message)-sizeof(long), tempPid, IPC_NOWAIT) > 0){
-					printf("OSS received message %d\n", atoi(message.mesg_text));
-					if(atoi(message.mesg_text) != 1){ //it received  aread or write
+					printf("OSS received message %d from position %d\n", atoi(message.mesg_text), position);
+					if(atoi(message.mesg_text) != 99999){ //it received  aread or write
 						printf("TEST 2 process count %d\n", processCount);
 						printf("OSS 2 message text %s child pid %d\n", message.mesg_text, (*pcbArrPtr)[i]->pid);
 						printf("TEST 3 process count %d\n", processCount);

@@ -54,69 +54,42 @@ int main(int argc, char *argv[]) {
 	printf("USER message id %d\n", msgid);
 	message.mesg_type = pid;
 	int complete = 0, request = 0;
-	//printf("USER request is %d\n", request);
-	//sprintf(message.mesg_text, "%d", request);
-	//printf("USER message is %d\n", atoi(message.mesg_text));
-	//msgsnd(msgid, &message, sizeof(message)-sizeof(long), 0);
-
-	//sem_wait(semPtr);
-	//message.mesg_type = (position + 8180);
-	//sprintf(message.mesg_text,"%d", pid);
-	//msgsnd(msgid, &message, sizeof(message), 0);
 	
-	//if((msgrcv(msgid, &message, sizeof(message), (position + 4328), 0)) < 0){
-	//	printf("%s\n", strerror(errno));
-	//}
-	//printf("\nUSER: AFTER MSG SEND\n");
-	//(*pcbArrPtr)[position]->pid = pid;
-	//printf("USER: position %d pid %d\n", position, (*pcbArrPtr)[position]->pid);
-	//printf("USER: AFTER msgsnd %d\n", position);
-	//printf("USER: position %d pid %d\n", position, pid);
-	//printf("\nUSER: seconds are: %u nano are: %u position %d\n", *seconds, *nanoseconds, position);
 	message.mesg_type = 12345;//(int)pid;
 	setRandomEventTime(seconds, nanoseconds, &eventTimeSeconds, &eventTimeNanoseconds);
 	while(complete == 0){
-		//if((*seconds == eventTimeSeconds && *nanoseconds >= eventTimeNanoseconds) || *seconds > eventTimeSeconds){
-			event = rand()%9;//99;
+		if((*seconds == eventTimeSeconds && *nanoseconds >= eventTimeNanoseconds) || *seconds > eventTimeSeconds){
+			event = rand()%20;//99;
 			request = rand()%32001;
 			if(event >= 0 && event < 10){
 				//death
 				message.mesg_type = (int)pid;
 				sprintf(message.mesg_text,"%d", 99999);
 				msgsnd(msgid, &message, sizeof(message)-sizeof(long), 0);
-				printf("USER %d SENT MESSAGE and is waiting for message at %d\n",position, pid + 118);
+				printf("USER %d SENT DEATH MESSAGE and is waiting for message at %d\n",position, pid + 118);
 				msgrcv(msgid, &message, sizeof(message)-sizeof(long), (pid+118), 0);
 				printf("USER CAN DIE\n");
 				complete = 1;
 			} else if(event >= 10 && event < 65){
 				//request
+				message.mesg_type = (int)pid;
+				sprintf(message.mesg_text,"%d %d", request, 0);
+				msgsnd(msgid, &message, sizeof(message)-sizeof(long), 0);
+				printf("USER %d SENT REQUEST READ MESSAGE and is waiting for message at %d\n",position, pid + 118);
+				msgrcv(msgid, &message, sizeof(message)-sizeof(long), (pid+118), 0);
+				printf("USER CAN CONTINUE\n");
 			} else if(event >= 65){
 				//read
 			}
-		//}
+		}
 	}
-	printf("USER OUT OF SHIIIIIIIIIIIIIIIIIIIIIIIIIIIIT\n");
-	//message.mesg_type = (pid + 18);
-	//sprintf(message.mesg_text,"1");
-	//msgsnd(msgid, &message, sizeof(message)-sizeof(long), 0);
-	//printf("USER SENT MESSAGE\n");
-	
-	//printf("USER going to receive message of type %d\n", (pid+118));
-	
-	//msgrcv(msgid, &message, sizeof(message)-sizeof(long), (pid+118), 0);
-		
 	
 	shmdt(seconds);     	
-	//shmdt(nanoseconds);
 	shmdt(semPtr);
 	shmdt(pcbPtr);
 	
-	//msgctl(msgid, IPC_RMID, NULL);
 	shmctl(msgid, IPC_RMID, NULL);
-	//shmctl(timeid, IPC_RMID, NULL);
-	//shmctl(semid, IPC_RMID, NULL);
-	//shmctl(pcbid, IPC_RMID, NULL);
-	//shmctl(position, IPC_RMID, NULL);
+	
 	exit(0);
 }
 

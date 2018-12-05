@@ -18,7 +18,7 @@ struct mesg_buffer {
     char mesg_text[100]; 
 } message; 
 
-int alrm, processCount;
+int alrm, processCount, frameTablePos = 0;
 int setArr[18] = {0};
 
 void timerKiller(int sign_no){
@@ -88,11 +88,11 @@ int main(int argc, char *argv[]){
 	createSharedMemKeys(&timeKey, &semKey, &pcbKey);
  	createSharedMemory(&timeid, &semid, &pcbid, timeKey, semKey, pcbKey);
 	attachToSharedMemory(&seconds, &nanoseconds, &semPtr, &pcbPtr, timeid, semid, pcbid);
-	//create memkeys, memory, attach
-	//msgrcv(msgid, &message, sizeof(message), pcbPtr[i].pid, 0);
-	int forked = 0, forkTimeSet = 0, i = 0, tempPid = 0, status;
+	
+	int forked = 0, forkTimeSet = 0, i = 0, tempPid = 0, status, frameLoop = 0, pagefault = 0;
 	float childRequestAddress = 0;
 	char childMsg[20];
+	char requestType[20];
 	//sem_wait(semPtr);
 	//signal(SIGALRM, timerKiller);
 	//alarm(2);
@@ -109,79 +109,102 @@ int main(int argc, char *argv[]){
 			*nanoseconds = 0;
 		}
 		if(((*seconds == forkTimeSeconds) && (*nanoseconds >= forkTimeNanoseconds)) || (*seconds > forkTimeSeconds)){
-			//sleep(1);
 			if(checkArrPosition(&position) == 1){			
 				printf("BEGIN==================\n");
 				forked++;
-				if(forked == 26){
-					printf("26\n");
-				}
-				printf("%d %d", sizeof(PCB), sizeof(unsigned int));
-				//if(fork() == 0) execlp("ps", "ps", NULL);
 				forkTimeSet = 0;
 				printf("forking at %d : %d \n", *seconds, *nanoseconds);
 				createArgs(sharedTimeMem, sharedSemMem, sharedPositionMem, sharedPCBMem, timeid, semid, pcbid, position);
 				pid_t childPid = forkChild(sharedTimeMem, sharedSemMem, sharedPositionMem, sharedPCBMem);
 				pcbArray[position] = malloc(sizeof(struct PCB));
 				(*pcbArrPtr)[position]->pid = childPid;
-				//sleep(1);
+				
 				printf("Child pid is %d\n", childPid);
 				for(i = 0 ; i < 32; i++){
 					(*pcbArrPtr)[position]->pageTable[i] = -1;
 				}
 				(*pcbArrPtr)[position]->isSet = 1; // pointer to an array os pointers to structsd
 				
-				//printf("atoi cpd %d\n", atoi(childPID));
 				printf("FORKED %d\n", forked);
 				printf("END==================\n");
-				//sleep(1);
 			}
 		}
-		if(processCount < 18){
-			printf("PROCESS COUNT IS LESS THAN 18 AT %d\n", processCount);
-		}
-		
 		for(i = 0; i < processCount; i++){
 			
 			if(setArr[i] == 1){
-				//printf("position %d pid %d ", i, (*pcbArrPtr)[i]->pid);
+				
 				tempPid =  (*pcbArrPtr)[i]->pid;
-				//printf("TEST 1 process count %d\n", processCount);
-				//printf("OSS checking for messages position %d of type %ld\n", i, (*pcbArrPtr)[i]->pid);
-				//sleep(1);
+				
 				if((msgrcv(msgid, &message, sizeof(message)-sizeof(long), tempPid, IPC_NOWAIT|MSG_NOERROR)) > 0){
 					printf("OSS received message %d from position %d\n", atoi(message.mesg_text), position);
-					if(atoi(message.mesg_text) != 99999){ //it received  aread or write
-						printf("TEST 2 process count %d\n", processCount);
-						printf("OSS 2 message text %s child pid %d\n", message.mesg_text, (*pcbArrPtr)[i]->pid);
-						printf("TEST 3 process count %d\n", processCount);
-						strcpy(childMsg, message.mesg_text);
+					if(atoi(message.mesg_text) != 99999){ //it received  aread or write	
+						strcpy(childMsg, strtok(message.mesg_text, " "));
+						strcpy(requestType, strtok(NULL, " "));
 						printf("OSS child message %d\n", atoi(childMsg));
 						childRequestAddress = (atoi(childMsg))/1000;
 						childRequestAddress = (int)(floor(childRequestAddress));
 						printf("child request address is %d\n", (int)childRequestAddress);
 						if((*pcbArrPtr)[i]->pageTable[(int)childRequestAddress] == -1){
 							//assign to Frame Table
+							//need to check if pagetable[childrequestaddress] isnt -1;
 							//if frame table at frameTable[childRequestAddress][0]
+							frameLoop = 0;
+							while(frameTable[frameTablePos][0] != 0 && frameLoop < 255){
+								frameTablePos++;
+								frameLoop++;
+								if(frameTablePos == 256){
+									frameTablePos = 0;
+								} 
+								if(frameLoop == 255){
+									pagefault = 1;
+								}
+							}
+							if(pagefault == 1){
+								while(frameTable[frameTablePos][1] != 1){ //checks for frame where second chance bit isnt set
+									frameTablePos++;
+									if(frameTablePos == 256){
+										frameTablePos = 0;
+									}
+								} //assuming it finds a place where R is 0
+								if(frameTable[frameTablePos][1] == 0){
+									//new page goes here
+									(*pcbArrPtr)[i]->pageTable[(int)childRequestAddress] = frameTablePos;
+									frameTable[frameTablePos][0] = 1;
+									frameTable[frameTablePos][1] = 1;//R is set
+									frameTable[frameTablePos][2] = 1;//D is set
+								}
+							} else {
+								(*pcbArrPtr)[i]->pageTable[(int)childRequestAddress] = frameTablePos; //otherwise, 
+								frameTable[frameTablePos][0] = 1;
+								frameTable[frameTablePos][1] = 0;//R is cleared
+								frameTable[frameTablePos][2] = 1;//D is set
+								frameTablePos++; //clock advances.
+							}
+							if(frameTable[frameTablePos][0] == 0){
+								if(frameTable[frameTablePos][0] == 0){
+									frameTable[frameTablePos][0] = (int)childRequestAddress;
+										
+							//(*pcbArrPtr)[i]->pageTable[(int)childRequestAddress)] is equal to the first open spot
+							
 							frameTable[0][0] = childRequestAddress; 
 							printf("Frame table [0][0] is %d\n", (int)childRequestAddress);
 						}
+						message.mesg_type = ((*pcbArrPtr)[i]->pid+118);
+						sprintf(message.mesg_text,"wakey");
+						msgsnd(msgid, &message, sizeof(message)-sizeof(long), 0);
+	
 					} else if(atoi(message.mesg_text) == 99999){ //it received a death signal
 						setArr[i] = 0; //basically if it received a message then it wants to die						
 						message.mesg_type = ((*pcbArrPtr)[i]->pid+118);
-						//sleep(5);
 						printf("OSS sent death message of type %d\n", (*pcbArrPtr)[i]->pid+118);
-						sprintf(message.mesg_text,"1");
+						sprintf(message.mesg_text,"wakey");
 						msgsnd(msgid, &message, sizeof(message)-sizeof(long), 0);
-						//(*pcbArrPtr)[i]->isSet = 0;
-						//(*pcbArrPtr)[i]->pid = 0;
 						waitpid(((*pcbArrPtr)[i]->pid), &status, 0);
 						free(pcbArray[i]);
 					}
 				} else {
 					//printf("Message size %d\n",( sizeof(message) - sizeof(long)));
 					//printf("ERROR %d %s\n",errno,  strerror(errno));
-					
 					//exit(1);
 				}
 			}

@@ -32,7 +32,7 @@ struct PCB *(*pcbArrPtr)[] = &pcbArray;
 
 pid_t pid = 0;
 //PCB pcbArray[18];
-
+extern int limit, percentage;
 void createSharedMemKeys(key_t *timeKey, key_t *semKey, key_t *pcbKey){
 	*timeKey = ftok(".", 2820);
 	*semKey = ftok(".", 8993);
@@ -73,16 +73,18 @@ void attachToSharedMemory(unsigned int **seconds, unsigned int **nanoseconds, se
 	}
 };
 
-void createArgs(char *sharedTimeMem, char *sharedSemMem, char*sharedPositionMem, char*sharedPCBMem, int timeid, int semid, int pcbid, int position){
+void createArgs(char *sharedTimeMem, char *sharedSemMem, char*sharedPositionMem, char*sharedPCBMem, char*sharedLimitMem, char*sharedPercentageMem, int timeid, int semid, int pcbid, int position, int limit, int percentage){
 	snprintf(sharedTimeMem, sizeof(sharedTimeMem)+25, "%d", timeid);
 	snprintf(sharedSemMem, sizeof(sharedSemMem)+25, "%d", semid);
 	snprintf(sharedPositionMem, sizeof(sharedPositionMem)+25, "%d", position);
 	snprintf(sharedPCBMem, sizeof(sharedPCBMem)+25, "%d", pcbid);
+	snprintf(sharedLimitMem, sizeof(sharedLimitMem)+25, "%d", limit);
+	snprintf(sharedPercentageMem, sizeof(sharedPercentageMem)+25, "%d", percentage);
 };
 
-pid_t forkChild(char *sharedTimeMem, char *sharedSemMem, char*sharedPositionMem, char*sharedPCBMem){
+pid_t forkChild(char *sharedTimeMem, char *sharedSemMem, char*sharedPositionMem, char*sharedPCBMem, char*sharedLimitMem, char*sharedPercentageMem){
 	if((pid = fork()) == 0){
-		execlp("./user", "./user", sharedTimeMem, sharedSemMem, sharedPositionMem, sharedPCBMem, NULL);
+		execlp("./user", "./user", sharedTimeMem, sharedSemMem, sharedPositionMem, sharedPCBMem, sharedLimitMem, sharedPercentageMem, NULL);
 	}
 	if(pid < 0){
 		printf("FORK Error %s\n", strerror(errno));
